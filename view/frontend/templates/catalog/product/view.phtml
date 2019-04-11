@@ -1,0 +1,82 @@
+<?php
+/**
+ * @var $block \Metagento\StockQty\Block\Catalog\Product\View
+ */
+
+?>
+<?php if ($block->getHelperConfig()->isEnabled()): ?>
+    <script type="text/javascript">
+        requirejs(['jquery', 'underscore'], function (jQuery, _) {
+
+            var selectedProduct = function () {
+                var selected_options = {};
+                jQuery('div.swatch-attribute').each(function (k, v) {
+                    var attribute_id = jQuery(v).attr('attribute-id');
+                    var option_selected = jQuery(v).attr('option-selected');
+                    //console.log(attribute_id, option_selected);
+                    if (!attribute_id || !option_selected) {
+                        return;
+                    }
+                    selected_options[attribute_id] = option_selected;
+                });
+
+                var product_id_index = jQuery('[data-role=swatch-options]').data('mageSwatchRenderer').options.jsonConfig.index;
+                var found_ids = [];
+                jQuery.each(product_id_index, function (product_id, attributes) {
+                    var productIsSelected = function (attributes, selected_options) {
+                        return _.isEqual(attributes, selected_options);
+                    }
+                    if (productIsSelected(attributes, selected_options)) {
+                        found_ids.push(product_id);
+                    }
+                });
+                return found_ids[0];
+            };
+            // configurable product
+            jQuery(document).on('click', '.swatch-option', function () {
+                jQuery('.product-info-stock-sku .stock .stock-qty').remove();
+                var selectedProductId = selectedProduct();
+                if (selectedProductId > 0) {
+                    jQuery.ajax({
+                        method: 'POST',
+                        url: '<?php echo $block->getUrl('stockqty/') ?>',
+                        data: {
+                            product_id: selectedProductId
+                        },
+                        beforeSend: function () {
+                        },
+                        success: function (response) {
+                            var content = response.content;
+                            jQuery('.product-info-stock-sku .stock').append("<span class='stock-qty'>" + content + "</span>");
+                        }
+                    });
+                }
+            });
+            // normal product
+            <?php if($block->getProduct() && $block->getProduct()->getTypeId() == 'simple'): ?>
+            jQuery(document).ready(function () {
+                var selectedProductId = jQuery('#product_addtocart_form input[name=product]').val();
+                jQuery.ajax({
+                    method: 'POST',
+                    url: '<?php echo $block->getUrl('stockqty/') ?>',
+                    data: {
+                        product_id: selectedProductId
+                    },
+                    beforeSend: function () {
+                    },
+                    success: function (response) {
+                        var content = response.content;
+                        jQuery('.product-info-stock-sku .stock').append("<span class='stock-qty'>" + content + "</span>");
+                    }
+                });
+            });
+            <?php endif; ?>
+        });
+    </script>
+    <style>
+        .product-info-stock-sku .stock .stock-qty {
+            margin-left: 17px;
+        }
+    </style>
+
+<?php endif; ?>
